@@ -1,0 +1,12 @@
+{
+	"show_video": false,
+	"save_images": true,
+	"base_img_path": "./img",
+	"min_upload_seconds": 1.0,
+	"min_motion_frames": 8,
+	"camera_warmup_time": 2.5,
+	"delta_thresh": 3,
+	"resolution": [640, 480],
+	"fps": 16,
+	"min_area": 1000
+}
