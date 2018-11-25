@@ -1,12 +1,15 @@
 {
 	"show_video": false,
-	"save_images": true,
+	"save_video": true,
 	"base_img_path": "./img",
+	"base_video_path": "/var/www/html/detected",
 	"min_upload_seconds": 1.0,
 	"min_motion_frames": 8,
 	"camera_warmup_time": 2.5,
-	"delta_thresh": 3,
+	"delta_thresh": 5,
 	"resolution": [640, 480],
 	"fps": 16,
-	"min_area": 1000
+	"min_area": 5000,
+	"num_nonmotion_frames_stop_recording": 16,
+        "num_motion_frames_start_recording": 2	
 }
