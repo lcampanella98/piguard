@@ -6,6 +6,6 @@
 	"resolution": [640, 480],
 	"fps": 30,
 	"min_area": 5000,
-	"num_nonmotion_frames_stop_recording": 16,
-        "num_motion_frames_start_recording": 2	
+	"num_nonmotion_frames_stop_recording": 30,
+        "num_motion_frames_start_recording": 4 
 }

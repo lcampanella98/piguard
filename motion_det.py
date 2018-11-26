@@ -15,7 +15,8 @@ class MotionDetector:
 
         self.total_frames = 0
         self.total_recorded_frames = 0
-        self.even_frame = False # at 30 fps, no need to analyze every frame. analyze every other frame 
+        self.analyze_every_n_frames = 2
+        self.update_status_file_every_n_frames = 30
 
         self.init_vars()
     
@@ -59,11 +60,8 @@ class MotionDetector:
 
                 # compute the bounding box for the contour, draw it on the frame,
                 # and update the text
-                (x, y, w, h) = cv2.boundingRect(c)
-                x = round(x * self.conf["resolution"][0] / self.SCALE_WIDTH_PX)
-                y = round(y * self.conf["resolution"][1] / self.SCALE_WIDTH_PX)
-                w = round(w * self.conf["resolution"][0] / self.SCALE_WIDTH_PX)
-                h = round(h * self.conf["resolution"][1] / self.SCALE_WIDTH_PX)
+                scale = self.conf["resolution"][0] / self.SCALE_WIDTH_PX
+                (x, y, w, h) = tuple([round(scale * d) for d in cv2.boundingRect(c)]) # scale rectangle to dimensions 
                 cv2.rectangle(cur_frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
         return has_motion
@@ -90,11 +88,6 @@ class MotionDetector:
     def next_frame(self, frame):
         timestamp = datetime.datetime.now()
 
-        self.even_frame = not self.even_frame
-        if not self.even_frame: # skip every other frame
-            self.draw_on_frame(frame, timestamp)
-            return frame
-
         # resize the frame, convert it to grayscale, and blur it
         frame_resize = numpy.copy(frame)
         frame_resize = imutils.resize(frame_resize, width=self.SCALE_WIDTH_PX)
@@ -111,8 +104,9 @@ class MotionDetector:
         # previous frames 
         cv2.accumulateWeighted(gray, self.avg, 0.5)
 
-        # analyze current frame for motion
-        self.has_motion = self.frame_has_motion(gray, self.avg)
+        if self.total_frames % self.analyze_every_n_frames == 0:
+            # analyze current frame for motion
+            self.has_motion = self.frame_has_motion(gray, self.avg)
 
         if self.has_motion:
             self.num_consec_motion_frames += 1
@@ -120,7 +114,6 @@ class MotionDetector:
         else:
             self.num_consec_motion_frames = 0
             self.num_consec_nonmotion_frames += 1
-        
         
         self.draw_on_frame(frame, timestamp)
 
@@ -132,6 +125,7 @@ class MotionDetector:
                 self.video_writer.release()
                 self.video_writer = None
             else:
+                self.total_recorded_frames += 1
                 self.video_writer.write(frame)
         else: # we are not recording
             if self.num_consec_motion_frames >= self.conf["num_motion_frames_start_recording"]:
@@ -139,6 +133,9 @@ class MotionDetector:
                 print("[INFO] Starting recording...")
                 self.video_writer = self.get_video_writer(timestamp, self.conf["resolution"][0], self.conf["resolution"][1])
                 self.video_writer.write(frame)
+                self.total_recorded_frames += 1
+
+        self.total_frames += 1
 
         return frame
 
