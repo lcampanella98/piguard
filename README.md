@@ -1,8 +1,11 @@
 # piguard
 Real time monitoring system for raspberry pi
 
-Run with command:
-python3 piguard.py --conf conf.json
+Run mjpg stream with:
+./stream.sh
+
+// Run with command:
+// python3 piguard.py --conf conf.json
 
 Detect motion on raspberry pi camera
 Record video as long as motion is detected
