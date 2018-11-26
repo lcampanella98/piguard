@@ -9,14 +9,15 @@ class MotionDetector:
 
     SCALE_WIDTH_PX = 500
 
-    def __init__(self, rawCapture, camera, conf):
-        self.rawCapture = rawCapture
+    def __init__(self, conf):
         self.conf = conf
-        self.camera = camera
         self.codec = cv2.VideoWriter_fourcc('M','J','P','G')
 
         self.total_frames = 0
         self.total_recorded_frames = 0
+        self.even_frame = False # at 30 fps, no need to analyze every frame. analyze every other frame 
+
+        self.init_vars()
     
     def get_frames_saved(self):
         return self.total_recorded_frames - self.total_frames
@@ -25,7 +26,7 @@ class MotionDetector:
         self.last_video_time = timestamp
         file_path = self.conf["base_video_path"] + '/' + str(self.last_video_time) + '.avi' 
         print(file_path)
-        return cv2.VideoWriter(file_path,self.codec, self.conf['fps'], (w, h),  True) 
+        return cv2.VideoWriter(file_path, self.codec, self.conf['fps'], (w, h),  True) 
 
     def get_display_text(self, has_motion):
         if has_motion:
@@ -66,79 +67,78 @@ class MotionDetector:
                 cv2.rectangle(cur_frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
         return has_motion
-
-    def detect_motion(self):
+    
+    def init_vars(self):
         self.total_frames = 0
         self.total_recorded_frames = 0
         self.last_video_time = None
 
-        video_writer = None
-        avg = None
-        num_consec_motion_frames = 0
-        num_consec_nonmotion_frames = 0
-        has_motion = False
+        self.video_writer = None
+        self.avg = None
+        self.num_consec_motion_frames = 0
+        self.num_consec_nonmotion_frames = 0
+        self.has_motion = False
 
-        print("[INFO] warming up...")
-        time.sleep(self.conf["camera_warmup_time"])
+    def draw_on_frame(self, frame, timestamp):
+        # draw the text and timestamp on the frame
+        ts = timestamp.strftime("%A %d %B %Y %I:%M:%S%p")
+        cv2.putText(frame, "Room Status: {}".format(self.get_display_text(self.has_motion)), (10, 20),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        cv2.putText(frame, ts, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
+                .35, (0, 0, 255), 1)
 
-        # capture frames from the camera
-        for f in self.camera.capture_continuous(self.rawCapture, format="bgr", use_video_port=True):
-                # grab the raw NumPy array representing the image and initialize
-                # the timestamp and occupied/unoccupied text
-                frame = f.array
-                timestamp = datetime.datetime.now()
+    def next_frame(self, frame):
+        timestamp = datetime.datetime.now()
 
-                # resize the frame, convert it to grayscale, and blur it
-                frame_resize = numpy.copy(frame)
-                frame_resize = imutils.resize(frame_resize, width=self.SCALE_WIDTH_PX)
-                gray = cv2.cvtColor(frame_resize, cv2.COLOR_BGR2GRAY)
-                gray = cv2.GaussianBlur(gray, (21, 21), 0)
+        self.even_frame = not self.even_frame
+        if not self.even_frame: # skip every other frame
+            self.draw_on_frame(frame, timestamp)
+            return frame
 
-                # if the average frame is None, initialize it
-                if avg is None:
-                        print("[INFO] starting background model...")
-                        avg = gray.copy().astype("float")
-                        self.rawCapture.truncate(0)
-                        continue
-         
-                # accumulate the weighted average between the current frame and
-                # previous frames 
-                cv2.accumulateWeighted(gray, avg, 0.5)
+        # resize the frame, convert it to grayscale, and blur it
+        frame_resize = numpy.copy(frame)
+        frame_resize = imutils.resize(frame_resize, width=self.SCALE_WIDTH_PX)
+        gray = cv2.cvtColor(frame_resize, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
-                 
-                has_motion = self.frame_has_motion(gray, avg)
+        # if the average frame is None, initialize it
+        if self.avg is None:
+                print("[INFO] starting background model...")
+                self.avg = gray.copy().astype("float")
+                return frame 
+ 
+        # accumulate the weighted average between the current frame and
+        # previous frames 
+        cv2.accumulateWeighted(gray, self.avg, 0.5)
 
-                if has_motion:
-                    num_consec_motion_frames += 1
-                    num_consec_nonmotion_frames = 0
-                    print("[INFO] Detected {} consecutive motion frames".format(num_consec_motion_frames))
-                else:
-                    num_consec_motion_frames = 0
-                    num_consec_nonmotion_frames += 1
-                
-         
-                # draw the text and timestamp on the frame
-                ts = timestamp.strftime("%A %d %B %Y %I:%M:%S%p")
-                cv2.putText(frame, "Room Status: {}".format(self.get_display_text(has_motion)), (10, 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-                cv2.putText(frame, ts, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
-                        .35, (0, 0, 255), 1)
-                
-                if video_writer: # we are recording
-                    if num_consec_nonmotion_frames >= self.conf["num_nonmotion_frames_stop_recording"]:
-                        # stop recording
-                        print("[INFO] Stopping recording...")
-                        video_writer.release()
-                        video_writer = None
-                    else:
-                        video_writer.write(frame)
-                else: # not recording
-                    if num_consec_motion_frames >= self.conf["num_motion_frames_start_recording"]:
-                        # start recording
-                        print("[INFO] Starting recording...")
-                        video_writer = self.get_video_writer(timestamp, self.conf["resolution"][0], self.conf["resolution"][1])
-                        video_writer.write(frame)
+        # analyze current frame for motion
+        self.has_motion = self.frame_has_motion(gray, self.avg)
 
-                # clear the stream in preparation for the next frame
-                self.rawCapture.truncate(0)
+        if self.has_motion:
+            self.num_consec_motion_frames += 1
+            self.num_consec_nonmotion_frames = 0
+        else:
+            self.num_consec_motion_frames = 0
+            self.num_consec_nonmotion_frames += 1
+        
+        
+        self.draw_on_frame(frame, timestamp)
+
+        
+        if self.video_writer: # we are recording
+            if self.num_consec_nonmotion_frames >= self.conf["num_nonmotion_frames_stop_recording"]:
+                # stop recording
+                print("[INFO] Stopping recording...")
+                self.video_writer.release()
+                self.video_writer = None
+            else:
+                self.video_writer.write(frame)
+        else: # we are not recording
+            if self.num_consec_motion_frames >= self.conf["num_motion_frames_start_recording"]:
+                # start recording
+                print("[INFO] Starting recording...")
+                self.video_writer = self.get_video_writer(timestamp, self.conf["resolution"][0], self.conf["resolution"][1])
+                self.video_writer.write(frame)
+
+        return frame
 

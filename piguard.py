@@ -28,5 +28,14 @@ if __name__ == '__main__':
     camera.framerate = conf["fps"]
     rawCapture = PiRGBArray(camera, size=tuple(conf["resolution"]))
 
-    motion_detector = MotionDetector(rawCapture, camera, conf)
-    motion_detector.detect_motion()
+    motion_detector = MotionDetector(conf)
+
+    
+    print("[INFO] warming up...")
+    time.sleep(self.conf["camera_warmup_time"])
+
+    # capture frames from the camera
+    for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        motion_detector.next_frame(f.array)
+        rawCapture.truncate(0)
+
