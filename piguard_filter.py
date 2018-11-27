@@ -1,7 +1,6 @@
-import numpy
-import cv2
 from motion_det import MotionDetector
 import json
+import time
 
 class PiguardFilter:
 
@@ -13,7 +12,6 @@ class PiguardFilter:
 
     def process(self, frame):
         return self.motion_detector.next_frame(frame)
-        # return frame
 
 def init_filter():
     f = PiguardFilter()

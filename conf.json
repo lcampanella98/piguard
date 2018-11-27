@@ -1,11 +1,12 @@
 {
 	"base_video_path": "/var/www/html/detected",
+	"save_video": true,
 	"min_motion_frames": 8,
 	"camera_warmup_time": 2.5,
 	"delta_thresh": 5,
 	"resolution": [640, 480],
-	"fps": 30,
+	"fps": 16,
 	"min_area": 5000,
-	"num_nonmotion_frames_stop_recording": 30,
-        "num_motion_frames_start_recording": 4 
+	"num_nonmotion_frames_stop_recording": 50,
+        "num_motion_frames_start_recording": 5 
 }

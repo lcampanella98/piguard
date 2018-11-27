@@ -1,13 +1,8 @@
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 import argparse
-import warnings
-import datetime
-import imutils
 import json
 import time
-import cv2
-import numpy
 from motion_det import MotionDetector
  
 
@@ -18,8 +13,7 @@ if __name__ == '__main__':
             help="path to the JSON configuration file")
     args = vars(ap.parse_args())
      
-    # filter warnings, load the configuration and initialize the Dropbox
-    warnings.filterwarnings("ignore")
+    # load the configuration
     conf = json.load(open(args["conf"]))
 
     # initialize the camera and grab a reference to the raw camera capture
@@ -32,10 +26,17 @@ if __name__ == '__main__':
 
     
     print("[INFO] warming up...")
-    time.sleep(self.conf["camera_warmup_time"])
+    time.sleep(conf["camera_warmup_time"])
 
+    t = time.time()
+    nf = 0
     # capture frames from the camera
     for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        nf += 1
+        if time.time()-t>=1:
+            t = time.time()
+            print("{} frames".format(nf))
+            nf = 0
         motion_detector.next_frame(f.array)
         rawCapture.truncate(0)
 
