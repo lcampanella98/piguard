@@ -38,8 +38,9 @@ class MotionDetector:
         self.total_frames = 0
         self.total_recorded_frames = 0
         self.analyze_every_n_frames = 2
-        self.update_status_file_every_n_frames = 30
+        self.update_status_file_every_n_frames = 100
         self.avg_recording_fps = 11 
+        self.bytes_per_frame_approx = 22876
         
         self.queue = queue.Queue()
         self.writer_worker = VideoWriterWorker(self.queue)
@@ -47,6 +48,12 @@ class MotionDetector:
         self.writer_thread.start()
 
         self.init_vars()
+
+    def update_log_file(self):
+        # log total space captured, total space recorded, and total space saved (inferred)
+        with open(self.conf["stats_file_path"], 'w') as f:
+            f.write(str(self.bytes_per_frame_approx * self.total_frames) + '\t' + str(self.bytes_per_frame_approx * self.total_recorded_frames))
+
     
     def get_frames_saved(self):
         return self.total_recorded_frames - self.total_frames
@@ -182,6 +189,9 @@ class MotionDetector:
                     self.queue.put(WriteMessage(self.video_writer, numpy.copy(frame)))
                     self.total_recorded_frames += 1
                     self.start_measure_framerate()
+
+        if self.total_frames % self.update_status_file_every_n_frames == 0:
+            self.update_log_file()
 
         self.total_frames += 1
 
