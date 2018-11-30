@@ -2,7 +2,6 @@
 	"base_video_path": "/var/www/html/detected",
 	"stats_file_path": "/var/www/html/piguard_stats.txt",
 	"save_video": true,
-	"min_motion_frames": 8,
 	"camera_warmup_time": 2.5,
 	"delta_thresh": 5,
 	"resolution": [640, 480],

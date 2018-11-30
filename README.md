@@ -1,11 +1,16 @@
 # piguard
 Real time monitoring system for raspberry pi
 
-Run mjpg stream with:
-./stream.sh
+## Install Instructions
+1. Get a raspberry pi 3b+ and camera module
+2. Clone this repo to the home directory
+3. Install python 3, opencv 3, apache, php, and mjpg-streamer (https://github.com/jacksonliam/mjpg-streamer)
+4. Open ~/piguard/stream.sh and edit the LD_LIBRARY_PATH variable to the mjpg-streamer-experimental directory
+5. copy ~/piguard/www to /var/www
+6. open a browser window to localhost
 
-// Run with command:
-// python3 piguard.py --conf conf.json
+Run with:
+./piguard.sh
 
 Detect motion on raspberry pi camera
 Record video as long as motion is detected
@@ -20,8 +25,11 @@ if recording:
 		stop recording:
 			- save current video file
 
-Diagnostics: save total frames operational and total recorded frames
-	Difference is space savings in frames
+Diagnostics: 
+	save total frames operational and total recorded frames
+		Difference is space savings in frames
+	compute execution time of motion-detection algorithm
+	compute time saved using separate thread to write video
 
 
 
