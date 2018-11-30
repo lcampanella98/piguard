@@ -30,5 +30,6 @@ Diagnostics:
 	* compute execution time of motion-detection algorithm
 	* compute time saved using separate thread to write video
 
+https://www.ripublication.com/irph/ijict_spl/ijictv4n15spl_10.pdf
 
 
