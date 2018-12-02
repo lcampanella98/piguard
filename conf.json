@@ -1,12 +1,14 @@
 {
 	"base_video_path": "/var/www/html/detected",
 	"stats_file_path": "/var/www/html/piguard_stats.txt",
+	"measure_performance_metrics": true,
 	"save_video": true,
 	"camera_warmup_time": 2.5,
 	"delta_thresh": 5,
+	"min_area": 5000,
 	"resolution": [640, 480],
 	"fps": 16,
-	"min_area": 5000,
 	"num_nonmotion_frames_stop_recording": 50,
-        "num_motion_frames_start_recording": 5 
+        "num_motion_frames_start_recording": 5, 
+	"multithreaded_write": true 
 }

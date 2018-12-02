@@ -34,7 +34,7 @@ if (isset($_GET['del'])) {
 			if ($vid === '.' || $vid === '..') continue;
 			echo '<div class="row" style="margin-top: 10px;">';
 			echo "<div class='col-sm-4'><a href=\"{$vids_dir}/{$vid}\">{$vid}</a><a href=\"{$vids_dir}/{$vid}\" download></div>";
-			echo "<div class='col-sm-4'><button type=\"button\" class=\"btn btn-primary\">Download (" . human_filesize(filesize($vids_dir."/".$vid)) . ")</button></a></div>";
+			echo "<div class='col-sm-4'><button type=\"button\" class=\"btn btn-primary\">Download (" . human_filesize(filesize($vids_dir."/".$vid), 1) . ")</button></a></div>";
 			echo "<div class='col-sm-4'><a href=\"./view_detected.php?del=" . urlencode($vid) . "\"><button type=\"button\" class=\"btn btn-danger\">Delete</button></a></div>";
 			echo "</div>";
 

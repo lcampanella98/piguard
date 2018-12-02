@@ -28,19 +28,44 @@ function human_filesize($bytes, $decimals = 2) {
 				$arr = explode("\t", $status_str);
 				$total_bytes = $arr[0];
 				$recorded_bytes = $arr[1];
+				$avg_recording_fps = $arr[2];
+				$avg_motion_percent = $arr[3];
+				$avg_draw_percent = $arr[4];
+				$avg_video_write_percent = $arr[5];
 				echo '<br /><table class="table table-bordered" style="margin-top: 15px;"><tbody>';
 				echo "
 				<tr>
 					<td>Total information processed</td>
-					<td>" . human_filesize($total_bytes) . "</td>
+					<td>" . human_filesize($total_bytes, 1) . "</td>
 				</tr>
 				<tr>
 					<td>Total recorded motion</td>
-					<td>" . human_filesize($recorded_bytes) . "</td>
+					<td>" . human_filesize($recorded_bytes, 1) . "</td>
 				</tr>
 				<tr>
 					<td>Total space savings</td>
-					<td>" . human_filesize($total_bytes - $recorded_bytes) . " (" . round(($total_bytes-$recorded_bytes)/$total_bytes*100,2) . "%)</td>";
+					<td>" . human_filesize($total_bytes - $recorded_bytes, 1) . " (" . round(($total_bytes-$recorded_bytes)/$total_bytes*100,1) . "%)</td>
+				</tr>
+				<tr>	
+					<td>Average Framerate while Recording</td>
+					<td>" . $avg_recording_fps . "fps</td>
+				</tr>
+				<tr>
+					<th colspan=\"2\" style=\"text-align: center;\">Percent of processing time taken by:</th>
+				</tr>
+				<tr>
+					<td>Motion Detection</td>
+					<td>" . round($avg_motion_percent, 1) . "%</td>
+				</tr>
+				<tr>
+					<td>Drawing to frame</td>
+					<td>" . round($avg_draw_percent, 1) . "%</td>
+				</tr>
+				<tr>
+					<td>Writing video to file</td>
+					<td>" . round($avg_video_write_percent, 1) . "%</td>
+				</tr>
+				";
 				echo '</tbody></table>';
 			}
 

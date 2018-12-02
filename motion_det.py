@@ -50,9 +50,25 @@ class MotionDetector:
         self.init_vars()
 
     def update_log_file(self):
+        avg_motion = self.max_time_metrics["motion"][0] / self.max_time_metrics["motion"][1] if self.max_time_metrics["motion"][1] > 0 else 0
+        avg_draw = self.max_time_metrics["draw"][0] / self.max_time_metrics["draw"][1] if self.max_time_metrics["draw"][1] > 0 else 0
+        avg_write_video = self.max_time_metrics["write_video"][0] / self.max_time_metrics["write_video"][1] if self.max_time_metrics["write_video"][1] > 0 else 0
+
         # log total space captured, total space recorded, and total space saved (inferred)
         with open(self.conf["stats_file_path"], 'w') as f:
-            f.write(str(self.bytes_per_frame_approx * self.total_frames) + '\t' + str(self.bytes_per_frame_approx * self.total_recorded_frames))
+            arr_data = [
+                self.bytes_per_frame_approx * self.total_frames,
+                self.bytes_per_frame_approx * self.total_recorded_frames,
+                self.avg_recording_fps,
+                avg_motion,
+                avg_draw,
+                avg_write_video
+            ]
+            f.write('\t'.join([str(v) for v in arr_data]) + '\n')
+
+
+    def should_measure_metrics(self):
+        return self.conf["measure_performance_metrics"]
 
     
     def get_frames_saved(self):
@@ -61,7 +77,6 @@ class MotionDetector:
     def get_video_writer(self, timestamp, w, h):
         self.last_video_time = timestamp
         file_path = self.conf["base_video_path"] + '/' + str(self.last_video_time) + '.avi' 
-        print(file_path)
         return cv2.VideoWriter(file_path, self.codec, self.avg_recording_fps, (w, h),  True) 
 
     def get_display_text(self, has_motion):
@@ -108,6 +123,8 @@ class MotionDetector:
         self.num_consec_motion_frames = 0
         self.num_consec_nonmotion_frames = 0
         self.has_motion = False
+
+        self.max_time_metrics = {}
 
     def is_recording(self):
         return self.video_writer is not None
@@ -165,35 +182,80 @@ class MotionDetector:
         else:
             self.num_consec_motion_frames = 0
             self.num_consec_nonmotion_frames += 1
+
         
+        if self.should_measure_metrics():
+            timestamp_after_motion = datetime.datetime.now()
         
         self.draw_on_frame(frame, timestamp)
 
-        
+        if self.should_measure_metrics():
+            timestamp_after_draw = datetime.datetime.now()
+            should_update_metrics = False
+
         if self.conf["save_video"]:
             if self.is_recording(): # we are recording
                 if self.num_consec_nonmotion_frames >= self.conf["num_nonmotion_frames_stop_recording"]:
                     # stop recording
                     print("[INFO] Stopping recording...")
-                    self.queue.put(WriteMessage(self.video_writer, None))
+
+                    if self.conf["multithreaded_write"]:
+                        self.queue.put(WriteMessage(self.video_writer, None))
+                    else:
+                        self.video_writer.release()
+
                     self.video_writer = None
                     self.avg_recording_fps = self.end_measure_framerate() # use avg fps during last recording as fps of next recording
                 else:
                     self.total_recorded_frames += 1
-                    self.queue.put(WriteMessage(self.video_writer, numpy.copy(frame)))
+                    if self.conf["multithreaded_write"]:
+                        self.queue.put(WriteMessage(self.video_writer, numpy.copy(frame)))
+                    else:
+                        self.video_writer.write(frame)
+                    
+                    if self.should_measure_metrics():
+                        should_update_metrics = True
+
             else: # we are not recording
                 if self.num_consec_motion_frames >= self.conf["num_motion_frames_start_recording"]:
                     # start recording
                     print("[INFO] Starting recording...")
                     self.video_writer = self.get_video_writer(timestamp, self.conf["resolution"][0], self.conf["resolution"][1])
-                    self.queue.put(WriteMessage(self.video_writer, numpy.copy(frame)))
+
+                    if self.conf["multithreaded_write"]:
+                        self.queue.put(WriteMessage(self.video_writer, numpy.copy(frame)))
+                    else:
+                        self.video_writer.write(frame)
+
                     self.total_recorded_frames += 1
                     self.start_measure_framerate()
 
-        if self.total_frames % self.update_status_file_every_n_frames == 0:
-            self.update_log_file()
+        if self.should_measure_metrics():
+            timestamp_finish = datetime.datetime.now()
+            self.total_time_taken = (timestamp_finish - timestamp).total_seconds()
+
+            self.time_taken_motion = (timestamp_after_motion - timestamp).total_seconds()
+            if "motion" not in self.max_time_metrics:
+                self.max_time_metrics["motion"] = (0, 0)
+
+            self.time_taken_draw = (timestamp_after_draw - timestamp_after_motion).total_seconds()
+            if "draw" not in self.max_time_metrics:
+                self.max_time_metrics["draw"] = (0, 0) 
+
+            self.time_taken_write_video = (timestamp_finish - timestamp_after_draw).total_seconds()
+            if "write_video" not in self.max_time_metrics:
+                self.max_time_metrics["write_video"] = (0, 0) 
+                
+            if should_update_metrics:
+                self.max_time_metrics["motion"] = self.max_time_metrics["motion"][0] + 100 * self.time_taken_motion / self.total_time_taken, self.max_time_metrics["motion"][1] + 1
+                self.max_time_metrics["draw"] = self.max_time_metrics["draw"][0] + 100 * self.time_taken_draw / self.total_time_taken, self.max_time_metrics["draw"][1] + 1
+                self.max_time_metrics["write_video"] = self.max_time_metrics["write_video"][0] + 100 * self.time_taken_write_video / self.total_time_taken, self.max_time_metrics["write_video"][1] + 1
 
         self.total_frames += 1
+
+        if self.should_measure_metrics() and self.total_frames % self.update_status_file_every_n_frames == 0:
+            self.update_log_file()
+
 
         return frame
 
