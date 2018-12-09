@@ -1,0 +1,6 @@
+frame us: 282269
+current time: 493315
+
+diff: 211046 us
+	or 0.23 sec
+ 

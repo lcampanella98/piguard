@@ -138,7 +138,7 @@ class MotionDetector:
     
     def draw_on_frame(self, frame, timestamp):
         # draw the text and timestamp on the frame
-        ts = timestamp.strftime("%A %d %B %Y %I:%M:%S%p")
+        ts = timestamp.strftime("%A %d %B %Y %I:%M:%S%p %f")
         cv2.putText(frame, "Room Status: {}".format(self.get_display_text(self.has_motion)), (10, 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
         cv2.putText(frame, ts, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
