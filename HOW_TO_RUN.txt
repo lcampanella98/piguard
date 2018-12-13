@@ -1,0 +1,4 @@
+---PIGUARD HOW TO RUN---
+
+1. open a browser window to localhost
+2. Run with: ./piguard.sh

@@ -1,0 +1,7 @@
+---PIGUARD INSTALL INSTRUCTIONS---
+
+1. Get a raspberry pi 3b+ and camera module. Connect the camera to the pi and enable it. 
+2. Clone this repo to the home directory on the pi
+3. Install Video4Linux, python 3, opencv 3, apache, php, and mjpg-streamer (https://github.com/jacksonliam/mjpg-streamer)
+4. Open ~/piguard/stream.sh and edit the LD_LIBRARY_PATH variable so that it points to the mjpg-streamer-experimental directory
+5. copy ~/piguard/www to /var/www
