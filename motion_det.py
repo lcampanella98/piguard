@@ -156,13 +156,11 @@ class MotionDetector:
     def next_frame(self, frame):
         timestamp = datetime.datetime.now()
 
-        # resize the frame, convert it to grayscale, and blur it
-        #frame_resize = numpy.copy(frame)
-        #frame_resize = imutils.resize(frame_resize, width=self.SCALE_WIDTH_PX)
+        # convert frame to grayscale, and blur it
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
-        # if the average frame is None, initialize it
+        # if there is no avg (background) frame, initialize it
         if self.avg is None:
                 print("[INFO] starting background model...")
                 self.avg = gray.copy().astype("float")
@@ -214,7 +212,7 @@ class MotionDetector:
                         self.video_writer.write(frame)
                     
                     if self.should_measure_metrics():
-                        should_update_metrics = True
+                        should_update_metrics = True # only update metrics if we are recording video
 
             else: # we are not recording
                 if self.num_consec_motion_frames >= self.conf["num_motion_frames_start_recording"]:
